@@ -35,7 +35,8 @@ export class MyApplicationsComponent implements OnInit {
       });
   }
 
-  async ngOnInit() {
+  async ngOnInit() {    
+    localStorage.setItem('isPacificTimeZone', 'true');
     await this.getApplications();
   }
 

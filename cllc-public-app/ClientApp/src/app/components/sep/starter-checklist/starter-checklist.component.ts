@@ -19,6 +19,7 @@ export class StarterChecklistComponent implements OnInit {
   }
 
   close(startApp: boolean) {
+    localStorage.setItem('isPacificTimeZone', 'true');
     this.dialogRef.close(startApp);
   }
 

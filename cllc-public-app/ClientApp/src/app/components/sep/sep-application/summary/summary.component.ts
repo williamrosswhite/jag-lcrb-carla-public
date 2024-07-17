@@ -94,6 +94,7 @@ export class SummaryComponent implements OnInit {
   paymentTransactionMessage: string;
   loaded: boolean;
   savingToAPI: boolean;
+  isPacificTimeZone: boolean;
 
   @Input() set localId(value: number) {
     this._appID = value;
@@ -148,11 +149,13 @@ export class SummaryComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    this.loadTimeZone();
     if (this.transactionId) {
       this.verify_payment();
 
     }
     window.scrollTo(0, 0);
+    window.addEventListener('storage', this.handleStorageChange);
   }
 
   /**
@@ -378,8 +381,6 @@ export class SummaryComponent implements OnInit {
     return res;
   }
 
-
-
   async cancelApplication(): Promise<void> {
 
     // open dialog, get reference and process returned data from dialog
@@ -411,14 +412,23 @@ export class SummaryComponent implements OnInit {
           }
         }
       });
+  }
 
+  loadTimeZone(): void {
+    this.isPacificTimeZone = localStorage.getItem('isPacificTimeZone') === 'true';
+  }
 
-
+  handleStorageChange = (event: StorageEvent) => {
+    if (event.key === 'isPacificTimeZone') {
+      this.loadTimeZone();
+    }
   }
 
   async submitApplication(): Promise<void> {
     this.savingToAPI = true;
     const appData = await this.db.getSepApplication(this.localId);
+
+    // this.adjustForMountainTime(appData);
 
     if (appData.id) { // do an update ( the record exists in dynamics)
       const submitResult = await this.sepDataService.submitSepApplication(appData.id)
@@ -433,6 +443,9 @@ export class SummaryComponent implements OnInit {
         this.mode = "pendingReview";
       } else {
         this.snackBar.open("The application is submitted.", "Success", { duration: 2500, panelClass: ["green-snackbar"] });
+
+        localStorage.setItem('isPacificTimeZone', 'true');
+        
         this.router.navigateByUrl("/sep/my-applications");
       }
       if (this.localId) {
@@ -445,6 +458,27 @@ export class SummaryComponent implements OnInit {
     }
     this.savingToAPI = false;
   }
+
+  // adjustForMountainTime(appData: SepApplication): SepApplication {
+  //   if (this.isPacificTimeZone) {
+  //     return appData;
+  //   } else {
+  //     appData.eventLocations.forEach(loc => {
+  //       loc.eventDates.forEach(ed => {
+  //         // ed.eventStart = new Date(ed.eventStart);
+  //         // ed.eventEnd = new Date(ed.eventEnd);
+  //         // ed.serviceStart = new Date(ed.serviceStart);
+  //         // ed.serviceEnd = new Date(ed.serviceEnd);
+  //         // ed.eventStart.setHours(ed.eventStart.getHours() - 1);
+  //         // ed.eventEnd.setHours(ed.eventEnd.getHours() - 1);
+  //         // ed.serviceStart.setHours(ed.serviceStart.getHours() - 1);
+  //         // ed.serviceEnd.setHours(ed.serviceEnd.getHours() - 1);
+  //       });
+  //     });
+  //     return appData;
+  //   }
+  // }
+  
 
   // present a confirmation dialog prior to the payment being processed.
   payNow() {
@@ -467,6 +501,9 @@ export class SummaryComponent implements OnInit {
     window.print();
   }
 
+  ngOnDestroy(): void {
+    window.removeEventListener('storage', this.handleStorageChange);
+  }
 
 }
 

@@ -35,7 +35,7 @@ export class EventComponent extends FormBase implements OnInit {
   validationMessages: string[];
   previewCities: AutoCompleteItem[] = [];
   autocompleteCities: AutoCompleteItem[] = [];
-  isPacificTimeZone: boolean = true;
+  isPacificTimeZone: boolean = localStorage.getItem('isPacificTimeZone') !== 'false';
   isOpen: boolean[][] = [];
   get minDate() {
     return new Date();
@@ -140,11 +140,30 @@ export class EventComponent extends FormBase implements OnInit {
       app.eventLocations.forEach(loc => {
         loc.eventDates = loc.eventDates || [];        
         loc.serviceAreas = loc.serviceAreas || [];
+        if (!this.isPacificTimeZone) {
+          loc.eventDates.forEach(date => {
+            this.correctForMountainTime(date, 'eventStart');
+            this.correctForMountainTime(date, 'eventEnd');
+            this.correctForMountainTime(date, 'serviceStart');
+            this.correctForMountainTime(date, 'serviceEnd');
+          });
+        }
         this.addLocation(loc);
       });
     } else {
       // otherwise add a blank one
       this.addLocation();
+    }
+  }
+
+  // Times are set back an hour when this tab is advanced from when mountain time is selected
+  // This is necessary to advance them back if this tab is returned to
+  correctForMountainTime(dateObject: any, propertyName: string): void {
+    if (typeof dateObject[propertyName] === 'string') {
+      dateObject[propertyName] = new Date(dateObject[propertyName]);
+    }
+    if (dateObject[propertyName] instanceof Date) {
+      dateObject[propertyName].setHours(dateObject[propertyName].getHours() + 1);
     }
   }
 
@@ -284,7 +303,7 @@ export class EventComponent extends FormBase implements OnInit {
     datesForm.patchValue(val);
 
     datesForm.get('isPacificTimeZone').valueChanges.subscribe(value => {
-      this.isPacificTimeZone = value;
+      localStorage.setItem('isPacificTimeZone', JSON.stringify(value));
     });
 
     return datesForm;
